@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "drf_yasg",
+    'rest_framework',
+    'corsheaders',
     "users",
     "blog",
 ]
@@ -76,11 +78,16 @@ WSGI_APPLICATION = "CodeLeapBlog.wsgi.application"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': 'codeleap', #change to your db
+            'USER': 'postgres',
+            'PASSWORD': '1234',
+            'HOST': 'localhost',  #'localhost' for test or 'db' for Docker.
+            'PORT': 5432,
+        }
+
     }
-}
 
 
 # Password validation
@@ -112,6 +119,8 @@ TIME_ZONE = "UTC"
 USE_I18N = True
 
 USE_TZ = True
+
+AUTH_USER_MODEL = 'users.Users'
 
 
 # Static files (CSS, JavaScript, Images)

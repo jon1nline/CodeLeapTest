@@ -23,7 +23,7 @@ from drf_yasg import openapi
 
 schema_view = get_schema_view(
    openapi.Info(
-      title="API Docs",
+      title="Blog API Docs",
       default_version='v1',
    ),
    public=True,
@@ -32,7 +32,7 @@ schema_view = get_schema_view(
 urlpatterns = [
     path("admin/", admin.site.urls),
     path('user/', include('users.urls')),
-    path('posts/', include('blog.urls')),
+    path('blog/', include('blog.urls')),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0)),
     
 ]
