@@ -2,12 +2,16 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 
 class UserManager(BaseUserManager):
-    def create_user(self, username, password=None, **extra_fields):
+   
+    def create_user(self, username, email, password=None, **extra_fields):
         if not username:
-            raise ValueError('username is required.')
+            raise ValueError('The username must be set')
+        if not email:
+            raise ValueError('The Email must be set')
+
         email = self.normalize_email(email)
-        user = self.model(username=username, **extra_fields)
-        user.set_password(password)
+        user = self.model(username=username, email=email, **extra_fields)
+        user.set_password(password) # Hashes the password
         user.save(using=self._db)
         return user
 

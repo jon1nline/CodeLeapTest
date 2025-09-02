@@ -1,14 +1,15 @@
 from django.db import models
+from django.conf import settings
 
 class Posts(models.Model):
     username = models.ForeignKey(
-        'users.Users',
-        on_delete=models.CASCADE)
-    created_dateTime = models.DateField(auto_now_add=True)
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE
+    )
+    created_dateTime = models.DateTimeField(auto_now_add=True)
     title = models.CharField(max_length=100, null=False)
     content = models.CharField(max_length=5000, null=False)
     author_ip = models.CharField(max_length=20)
-    likes = models.IntegerField(null=True)
     is_active = models.BooleanField(default=True)
 
 

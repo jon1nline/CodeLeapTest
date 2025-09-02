@@ -45,7 +45,7 @@ class UserLogin(generics.RetrieveUpdateDestroyAPIView):
                 'access_token',
                 token['access'],
                 httponly=True,
-                secure=True,
+                secure=False,
                 samesite='Strict',
                
             )
@@ -54,7 +54,7 @@ class UserLogin(generics.RetrieveUpdateDestroyAPIView):
                 'refresh_token',
                 token['refresh'],
                 httponly=True,
-                secure=True,
+                secure=False,
                 samesite='Strict',
                 max_age=604800  # dura 7 dias
             )

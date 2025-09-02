@@ -1,15 +1,16 @@
 from django.shortcuts import render
-from rest_framework import generics
-from drf_yasg.utils import swagger_auto_schema
-from rest_framework.exceptions import ValidationError, AuthenticationFailed
+from rest_framework import generics,  viewsets
+from rest_framework.views import APIView
+from django.http import JsonResponse
+from rest_framework.exceptions import ValidationError
 from .models import Posts
-from .serializers import PostsSerializer, PostUpdateSerializer
-from drf_yasg import openapi
+from rest_framework.exceptions import NotAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from users.utils.jwt_utils import verificar_token_cookies
 from users.models import Users
-from .serializers import PostsSerializer
+from .serializers import PostSerializer
+from django.utils import timezone
 
 
 def check_login( request):
@@ -18,24 +19,49 @@ def check_login( request):
         return None, error_response
     return payload, None
 
+def get_author_ip(request):
 
-class PostsListCreate(generics.ListCreateAPIView):
+    # Check for the X-Forwarded-For header first
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0].strip()
+    else:
+        # Fallback to REMOTE_ADDR if X-Forwarded-For is not present
+        ip = request.META.get('REMOTE_ADDR')
+        
+    return ip
+
+
+
+class PostViewSet(viewsets.ModelViewSet):
     queryset = Posts.objects.all()
-    serializer_class = PostsSerializer
+    serializer_class = PostSerializer
+    http_method_names =['get','patch','post','delete']
+
+    def get_queryset(self):
+        return Posts.objects.filter(
+            is_active=True, 
+        ).order_by('created_dateTime')
+
 
     def perform_create(self, serializer):
         payload, error = check_login(self.request)
         if error:
-            return error
+            return Response(
+                {'error': 'user not logged-in'},
+                status=status.HTTP_401_UNAUTHORIZED)
         try:
             user_id = payload.get('id')
             user = Users.objects.get(id=user_id)
+            author_ip_address = get_author_ip(self.request)
+            time_post = timezone.now()
             if not user_id:
                 return Response(
                 {'error': 'username not found in token'},
                 status=status.HTTP_401_UNAUTHORIZED
             )
-            serializer.save(username=user)   #save the post with the username_id and shows the username  
+            serializer.save(username=user, author_ip=author_ip_address,created_dateTime=time_post)   #save the post with the username_id, author_ip and shows the username  
         except Users.DoesNotExist:
             # Se o usuário do token não existe mais no banco, levanta uma exceção (resposta 400).
             raise ValidationError("O usuário associado a este token não foi encontrado.")
@@ -43,15 +69,30 @@ class PostsListCreate(generics.ListCreateAPIView):
             # Captura outros erros inesperados.
             raise ValidationError(f"Ocorreu um erro inesperado: {str(e)}")
 
-class PostsUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Posts.objects.all()
-    serializer_class = PostUpdateSerializer
-    http_method_names = ['patch', 'delete']  
+    def list(self, request, *args, **kwargs):
+        payload, error = check_login(request)
+        if error:
+            return Response(
+                {'error': 'username not found in token'},
+                status=status.HTTP_401_UNAUTHORIZED)
+
+        queryset = self.filter_queryset(self.get_queryset())
+        #retorna os posts paginados.
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
 
     def patch(self, request, *args, **kwargs):
         payload, error = check_login(request)
         if error:
-            return error
+            return Response(
+                {'error': 'user not logged-in'},
+                status=status.HTTP_401_UNAUTHORIZED)
              
         instance = self.get_object()
         logged_user_id = payload.get('id')
@@ -73,7 +114,9 @@ class PostsUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
         #delete the post(soft delete)
         payload, error = check_login(request)
         if error:
-            return error    
+            return Response(
+                {'error': 'user not logged-in'},
+                status=status.HTTP_401_UNAUTHORIZED)    
         try:
             post = self.get_object()
         except post.DoesNotExist:
@@ -92,5 +135,5 @@ class PostsUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
         post.save()
         return Response(
         {'message': 'Post deleted '},
-        status=status.HTTP_200_OK
+        status=status.HTTP_204_NO_CONTENT
     )

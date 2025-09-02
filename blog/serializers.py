@@ -1,32 +1,28 @@
 from rest_framework import serializers
 from .models import Posts
 
-class PostsSerializer(serializers.ModelSerializer):
-    
+class PostSerializer(serializers.ModelSerializer):
+    # For GET requests, displays the user's string representation (e.g., name)
+    # instead of just their ID. It's automatically read-only.
     username = serializers.StringRelatedField(read_only=True)
-    class Meta:
-        model = Posts
-        # Adicione 'username' à lista de campos
-        fields = ['id', 'title', 'content', 'author_ip', 'likes', 'username']
-        extra_kwargs = {
-            'title': {'required': True, 'max_length': 100, 'min_length': 1},
-            'content': {'required': True, 'max_length': 5000, 'min_length': 1},
-            'author_ip': {'required': True, 'max_length': 20, 'min_length': 1},
-            'likes': {'required': False, 'allow_null': True}
-        }
 
-class PostUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Posts
-        fields = '__all__'  # Include all fields
-        read_only_fields = ['id', 'username', 'created_time', 'likes','author_ip']
-        extra_kwargs = {
-            'title': {'required': True},
-            'content': {'required': True},
-        }
+        fields = [
+            'id',
+            'title',
+            'content',
+            'author_ip',
+            'username',
+            'created_dateTime' # It's good practice to show when it was created
+        ]
 
-class PostDelete(serializers.ModelSerializer):
-    class Meta:
-        model = Posts
-        fields = '__all__'  # Include all fields
-               
+        # These fields will be sent on GET requests but cannot be set or
+        # modified by the client.
+        read_only_fields = ['id', 'author_ip', 'username', 'created_dateTime']
+
+        # These validations apply to POST and PUT, but not PATCH (for partial updates)
+        extra_kwargs = {
+            'title': {'required': True, 'min_length': 1, 'max_length': 100},
+            'content': {'required': True, 'min_length': 1, 'max_length': 5000},
+        }

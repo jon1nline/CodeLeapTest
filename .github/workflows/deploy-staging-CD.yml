@@ -1,0 +1,43 @@
+name: Deploy para AWS EC2 - Staging
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: Production-v2
+
+    env:
+      AWS_EC2_USER: ubuntu
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v3
+
+      - name: Definir chave SSH para acesso à EC2
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.AWS_SSH_PRIVATE_KEY }}" > ~/.ssh/my-key.pem
+          chmod 600 ~/.ssh/my-key.pem
+
+      - name: Add secret api in .env.example
+        run: |
+          echo "AWS_API_GATEWAY_KEY=${{ secrets.AWS_API_GATEWAY_KEY }}" >> .env.example
+          echo "AWS_API_GATEWAY_URL=${{ secrets.AWS_API_GATEWAY_URL }}" >> .env.example
+          echo "USER_LOGIN_URL=${{ secrets.USER_LOGIN_URL }}" >> .env.example
+          echo "PROFESSIONAL_LOGIN_URL=${{ secrets.PROFESSIONAL_LOGIN_URL }}" >> .env.example
+          echo "DATABASE_HOST=${{ vars.DATABASE_HOST_STAGING }}" >> .env.example
+          echo "DATABASE_NAME=${{ vars.DATABASE_NAME }}" >> .env.example
+          echo "DATABASE_USER=${{ vars.DATABASE_USER }}" >> .env.example
+          echo "DATABASE_PASSWORD=${{ secrets.DATABASE_PASSWORD }}" >> .env.example
+
+      - name: Copiar arquivos para a EC2
+        run: |
+          rsync -avz -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/my-key.pem" --exclude='.git' ./ $AWS_EC2_USER@${{ vars.AWS_EC2_IP_STANGING }}:/home/$AWS_EC2_USER/deploy/
+
+      - name: Conectar à EC2 e executar comandos de deploy
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/my-key.pem $AWS_EC2_USER@${{ vars.AWS_EC2_IP_STANGING }} "cd /home/$AWS_EC2_USER/deploy && ./remote_deploy.sh"

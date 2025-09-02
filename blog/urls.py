@@ -1,7 +1,11 @@
-from django.urls import path
-from .views import PostsListCreate, PostsUpdateDestroy
+from django.urls import path, include
+from .views import PostViewSet
+from rest_framework.routers import DefaultRouter
+
+router = DefaultRouter()
+
+router.register(r'posts', PostViewSet, basename='post')
 
 urlpatterns = [
-    path('post/', PostsListCreate.as_view(), name='posts-list-create'),
-   path('post/<int:pk>/', PostsUpdateDestroy.as_view(), name='posts-retrieve-update-destroy'),
+    path('', include(router.urls)),
 ]
