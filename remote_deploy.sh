@@ -25,6 +25,12 @@ echo "INFO: 🐳 Subindo containers com Docker Compose..."
 # (Re)constrói e sobe os containers. Usamos o nome do diretório como prefixo do projeto.
 docker-compose -f "docker-compose.yml" up -d --build
 
+# --- BANCO DE DADOS E APLICAÇÃO ---
+echo "INFO: 🛠️ Aplicando migrações..."
+# Removi o '|| true' para que o erro seja exibido se a migração falhar.
+# Altere 'web' para o nome do seu serviço se for diferente.
+docker-compose -f "docker-compose.yml" exec deploy_web python manage.py migrate
+
 # --- VERIFICAÇÃO FINAL ---
 echo "INFO: Containers em execução:"
 docker-compose ps
