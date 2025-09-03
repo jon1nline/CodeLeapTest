@@ -32,7 +32,7 @@ jobs:
 
       - name: Copiar arquivos para a EC2
         run: |
-          rsync -avz -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/my-key.pem" --exclude='.git' ./ $AWS_EC2_USER@${{ vars.AWS_EC2_IP_STANGING }}:/home/$AWS_EC2_USER/deploy/
+          rsync -avz -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/my-key.pem" --exclude='.git' ./ $AWS_EC2_USER@${{ vars.AWS_EC2_IP_STAGING }}:/home/$AWS_EC2_USER/deploy/
 
       - name: Conectar à EC2 e executar comandos de deploy
         run: |
