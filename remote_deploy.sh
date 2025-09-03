@@ -16,10 +16,14 @@ echo "INFO: Alterando mapeamento de portas no docker-compose.yml"
 # Exemplo de alteração de porta, ajuste conforme a sua necessidade
 sed -i 's/"8000:8000"/"80:8000"/g' "$APP_DIR/docker-compose.yml"
 
-# --- DOCKERIZAÇÃO ---
-echo "INFO: Iniciando os containers Docker..."
-cd "$APP_DIR"
-docker-compose up -d --build --remove-orphans
+# --- DOCKER ---
+echo "INFO: 🐳 Parando e removendo containers antigos (se existirem)..."
+# O comando 'down' remove os containers e volumes associados
+docker-compose -f "docker-compose.yml" down --volumes --remove-orphans || true
+
+echo "INFO: 🐳 Subindo containers com Docker Compose..."
+# (Re)constrói e sobe os containers. Usamos o nome do diretório como prefixo do projeto.
+docker-compose -f "docker-compose.yml" up -d --build
 
 # --- VERIFICAÇÃO FINAL ---
 echo "INFO: Containers em execução:"
