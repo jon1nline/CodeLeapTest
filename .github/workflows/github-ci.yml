@@ -1,94 +1,61 @@
 name: Github Ci
 run-name: Tests by @${{ github.actor }} 🚀
+
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    container: python:3.11
 
     services:
       postgres:
         image: postgres:15
         env:
           POSTGRES_PASSWORD: 123456
-          DATABASE_HOST: postgres
         ports:
-        - 5432:5432
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+          - 5432:5432
+        options: >
+          --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
     steps:
-    - uses: actions/checkout@v3
+      - name: Checkout do código
+        uses: actions/checkout@v4
 
-    - name: set PY for cache handling
-      run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
 
-    - uses: actions/cache/restore@v4
-      id: pre-commit-cache-restore
-      with:
-        path: ~/.cache/pre-commit
-        key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
-        fail-on-cache-miss: false
+      - name: Instalar dependências
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pre-commit
+      
+      - name: Rodar verificações de código
+        run: |
+          echo "Rodando verificações de código..."
+          pre-commit run --all-files
+          python manage.py makemigrations --check --dry-run
+        env:
+          POSTGRES_PASSWORD: 123456
+          DATABASE_HOST: localhost
+          POSTGRES_PORT: ${{ job.services.postgres.ports[5432] }}
 
-    - uses: actions/cache/restore@v4
-      id: pypoetry-virtualenvs-cache-restore
-      with:
-        path: ~/.cache/pypoetry/virtualenvs
-        key: pypoetry|${{ env.PY }}|${{ hashFiles('poetry.lock') }}
-        fail-on-cache-miss: false
+      - name: Rodar testes e cobertura de código
+        run: pytest --cov=.
+        env:
+          POSTGRES_PASSWORD: 123456
+          DATABASE_HOST: localhost
+          POSTGRES_PORT: ${{ job.services.postgres.ports[5432] }}
 
-    - name: Setup git config for pre-commit
-      run: git init && git config --global --add safe.directory /__w/lacrei-api/lacrei-api && git add .
-
-    - name: Run install
-      run: make install
-
-    - uses: actions/cache/save@v4
-      id: pypoetry-virtualenvs-cache-save
-      with:
-        path: ~/.cache/pypoetry/virtualenvs
-        key: pypoetry|${{ env.PY }}|${{ hashFiles('poetry.lock') }}
-
-    - uses: actions/cache/save@v4
-      id: pre-commit-cache-save
-      with:
-        path: ~/.cache/pre-commit
-        key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
-
-    - name: Run check
-      run: make check
-
-    - name: Run comparison between branch requirements.txt and the one exported from poetry - fails if they differ
-      run: make compare-requirements-from-branch-and-poetry-export
-
-    - name: Run pre-commit all files - fails if adjustments are required
-      run: make pre-commit-all-files
-
-    - name: Run check-migrations
-      run: make check-migrations
-      env:
-        POSTGRES_PASSWORD: 123456
-        DATABASE_HOST: postgres
-        POSTGRES_PORT: ${{ job.services.postgres.ports[5432] }}
-
-    - name: Run test-converage
-      run: make test-coverage
-      env:
-        POSTGRES_PASSWORD: 123456
-        DATABASE_HOST: postgres
-        POSTGRES_PORT: ${{ job.services.postgres.ports[5432] }}
-
-    # 2024-04-05 Bypass Safety Check
-    # Reported in this [Slack thread](https://lacreisaude.slack.com/archives/C01CX42EHU1/p1712354624079169)
-    # - name: Run safety dependencies check
-    #   run: make safety-check
-
-    - name: Run Horusec
-      id: run_horusec
-      uses: fike/horusec-action@v0.2.2
-      with:
-         arguments: -c=horusec-config.json -p ./
+      - name: Rodar Horusec (Análise de Segurança)
+        id: run_horusec
+        uses: fike/horusec-action@v0.2.2
+        with:
+          arguments: -c=horusec-config.json -p ./

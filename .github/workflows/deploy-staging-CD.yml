@@ -25,10 +25,6 @@ jobs:
 
       - name: Add secret api in .env.example
         run: |
-          echo "AWS_API_GATEWAY_KEY=${{ secrets.AWS_API_GATEWAY_KEY }}" >> .env.example
-          echo "AWS_API_GATEWAY_URL=${{ secrets.AWS_API_GATEWAY_URL }}" >> .env.example
-          echo "USER_LOGIN_URL=${{ secrets.USER_LOGIN_URL }}" >> .env.example
-          echo "PROFESSIONAL_LOGIN_URL=${{ secrets.PROFESSIONAL_LOGIN_URL }}" >> .env.example
           echo "DATABASE_HOST=${{ vars.DATABASE_HOST_STAGING }}" >> .env.example
           echo "DATABASE_NAME=${{ vars.DATABASE_NAME }}" >> .env.example
           echo "DATABASE_USER=${{ vars.DATABASE_USER }}" >> .env.example
