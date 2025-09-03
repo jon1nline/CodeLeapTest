@@ -30,23 +30,25 @@ else
     exit 1
 fi
 
+# --- ALTERAR PORTA NO DOCKER-COMPOSE ---
+echo "🚀 Alterar porta de comunicação da api EC2..."
+# Usar caminho absoluto para o docker-compose.yml NA NOVA RELEASE
+if [ -f "$NEW_RELEASE_DIR/$COMPOSE_FILE" ]; then
+    sed -i 's/"8000:8000"/"80:8000"/g' "$NEW_RELEASE_DIR/$COMPOSE_FILE"
+    echo "INFO: Porta alterada com sucesso para 80:8000"
+else
+    echo "ERROR: $COMPOSE_FILE não encontrado em $NEW_RELEASE_DIR/"
+    echo "Arquivos no diretório:"
+    ls -la "$NEW_RELEASE_DIR/"
+    exit 1
+fi
+
 # --- ATIVAÇÃO DA NOVA RELEASE ---
 echo "INFO: Atualizando link simbólico para a nova release..."
 ln -sfn "$NEW_RELEASE_DIR" "$CURRENT_LINK"
 
 # Navega para o diretório da release ativa
 cd "$CURRENT_LINK"
-
-echo "🚀 Alterar porta de comunicação da api EC2..."
-# Usar caminho absoluto para o docker-compose.yml
-if [ -f "$CURRENT_LINK/$COMPOSE_FILE" ]; then
-    sed -i 's/"8000:8000"/"80:8000"/g' "$CURRENT_LINK/$COMPOSE_FILE"
-else
-    echo "ERROR: $COMPOSE_FILE não encontrado em $CURRENT_LINK/"
-    echo "Arquivos no diretório:"
-    ls -la "$CURRENT_LINK/"
-    exit 1
-fi
 
 echo "🚀 Iniciando deploy no servidor EC2..."
 
