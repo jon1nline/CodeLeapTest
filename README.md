@@ -123,6 +123,12 @@ It allows users to register, login, create posts, and manage their own content.
   }
   ```
 
+  #### Swagger documentation
+
+- **URL:** `/docs`
+
+---
+
 #### Retrieve/Update/Delete Post
 
 - **URL:** `/blog/posts/<int:pk>/`
@@ -172,7 +178,7 @@ It allows users to register, login, create posts, and manage their own content.
 
 You can test the API using SwaggerUI:
 
-- **SwaggerUI API:** [http://localhost:8000/swagger/](http://localhost:8000/swagger/)
+- **SwaggerUI API AWS DEPLOY:** [http://54.242.30.117/docs/](http://54.242.30.117/docs/)
 
 ### Example `cURL` command for creating a post:
 
