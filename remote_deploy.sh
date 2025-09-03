@@ -25,4 +25,4 @@ docker-compose up -d --build --remove-orphans
 echo "INFO: Containers em execução:"
 docker-compose ps
 
-echo "SUCCESS: 🎉 Deploy finalizado com sucesso!
+echo "SUCCESS: 🎉 Deploy finalizado com sucesso!"
