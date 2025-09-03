@@ -2,7 +2,7 @@
 set -e
 
 # --- CONFIGURAÇÃO ---
-USER=$(whoami)
+USER="ubuntu"
 COMPOSE_FILE="docker-compose.yml"
 APP_BASE_DIR="/home/$USER"
 DEPLOY_DIR="$APP_BASE_DIR/deploy"

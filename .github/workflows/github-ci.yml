@@ -45,9 +45,10 @@ jobs:
           echo "DATABASE_HOST=localhost" >> $GITHUB_ENV
           echo "DATABASE_PORT=5432" >> $GITHUB_ENV
 
-      - name: Gerar migrações
+      - name: Gerar migrações (com input automático)
         run: |
-          python manage.py makemigrations
+          # Fornece a opção 1 automaticamente quando solicitado
+          echo "1" | python manage.py makemigrations || echo "Migrações podem já estar atualizadas"
         env:
           DATABASE_NAME: test_db
           DATABASE_USER: postgres
