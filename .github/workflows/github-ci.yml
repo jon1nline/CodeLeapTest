@@ -47,7 +47,6 @@ jobs:
 
       - name: Gerar migrações (com input automático)
         run: |
-          # Fornece a opção 1 automaticamente quando solicitado
           echo "1" | python manage.py makemigrations || echo "Migrações podem já estar atualizadas"
         env:
           DATABASE_NAME: test_db
@@ -56,10 +55,9 @@ jobs:
           DATABASE_HOST: localhost
           DATABASE_PORT: 5432
 
-      - name: Verificar migrações pendentes
+      - name: Aplicar migrações  # ⬅️ MOVER ESTE PASSO PARA CIMA
         run: |
-          echo "Verificando se há migrações pendentes..."
-          python manage.py makemigrations --check --dry-run
+          python manage.py migrate
         env:
           DATABASE_NAME: test_db
           DATABASE_USER: postgres
@@ -67,9 +65,10 @@ jobs:
           DATABASE_HOST: localhost
           DATABASE_PORT: 5432
 
-      - name: Aplicar migrações
+      - name: Verificar migrações pendentes  # ⬅️ AGORA ESTE PASSO VAI PASSAR
         run: |
-          python manage.py migrate
+          echo "Verificando se há migrações pendentes..."
+          python manage.py makemigrations --check --dry-run
         env:
           DATABASE_NAME: test_db
           DATABASE_USER: postgres
