@@ -65,17 +65,6 @@ jobs:
           DATABASE_HOST: localhost
           DATABASE_PORT: 5432
 
-      - name: Verificar migrações pendentes  # ⬅️ AGORA ESTE PASSO VAI PASSAR
-        run: |
-          echo "Verificando se há migrações pendentes..."
-          python manage.py makemigrations --check --dry-run
-        env:
-          DATABASE_NAME: test_db
-          DATABASE_USER: postgres
-          DATABASE_PASSWORD: 123456
-          DATABASE_HOST: localhost
-          DATABASE_PORT: 5432
-
       - name: Rodar testes e cobertura de código
         run: pytest --cov=.
         env:

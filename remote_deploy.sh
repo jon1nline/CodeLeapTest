@@ -18,13 +18,27 @@ mkdir -p "$RELEASES_DIR" # Garante que o diretório de releases exista
 # Copia todo o conteúdo (incluindo arquivos ocultos) preservando permissões
 cp -a "$DEPLOY_DIR/." "$NEW_RELEASE_DIR/"
 
+# --- CONFIGURAR .env PRIMEIRO ---
+echo "INFO: Configurando .env na nova release..."
+cd "$NEW_RELEASE_DIR"
+
+# Verificar se .env.example existe antes de mover
+if [ -f ".env.example" ]; then
+    echo "INFO: Renomeando .env.example para .env"
+    mv .env.example .env
+else
+    echo "ERROR: .env.example não encontrado em $NEW_RELEASE_DIR/"
+    echo "Arquivos no diretório:"
+    ls -la
+    exit 1
+fi
+
 # --- ATIVAÇÃO DA NOVA RELEASE ---
 echo "INFO: Atualizando link simbólico para a nova release..."
 ln -sfn "$NEW_RELEASE_DIR" "$CURRENT_LINK"
 
-# Navega para o diretório da release ativa
+# Navega para o diretório da release ativa (agora via link simbólico)
 cd "$CURRENT_LINK"
-mv .env.example .env
 
 echo "🚀 Alterar porta de comunicação da api EC2..."
 # Altera o mapeamento da porta de 8000:8000 para 80:8000
