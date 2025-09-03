@@ -14,21 +14,18 @@ RELEASES_TO_KEEP=1
 
 # --- CRIAÇÃO DA NOVA RELEASE ---
 echo "INFO: Criando nova release em $NEW_RELEASE_DIR"
-mkdir -p "$RELEASES_DIR" # Garante que o diretório de releases exista
-# Copia todo o conteúdo (incluindo arquivos ocultos) preservando permissões
+mkdir -p "$RELEASES_DIR"
 cp -a "$DEPLOY_DIR/." "$NEW_RELEASE_DIR/"
 
 # --- CONFIGURAR .env PRIMEIRO ---
 echo "INFO: Configurando .env na nova release..."
 cd "$NEW_RELEASE_DIR"
 
-# Verificar se .env.example existe antes de mover
 if [ -f ".env.example" ]; then
     echo "INFO: Renomeando .env.example para .env"
     mv .env.example .env
 else
     echo "ERROR: .env.example não encontrado em $NEW_RELEASE_DIR/"
-    echo "Arquivos no diretório:"
     ls -la
     exit 1
 fi
@@ -37,31 +34,35 @@ fi
 echo "INFO: Atualizando link simbólico para a nova release..."
 ln -sfn "$NEW_RELEASE_DIR" "$CURRENT_LINK"
 
-# Navega para o diretório da release ativa (agora via link simbólico)
+# Navega para o diretório da release ativa
 cd "$CURRENT_LINK"
 
 echo "🚀 Alterar porta de comunicação da api EC2..."
-# Altera o mapeamento da porta de 8000:8000 para 80:8000
-sed -i 's/"8000:8000"/"80:8000"/g' "$COMPOSE_FILE"
+# Usar caminho absoluto para o docker-compose.yml
+if [ -f "$CURRENT_LINK/$COMPOSE_FILE" ]; then
+    sed -i 's/"8000:8000"/"80:8000"/g' "$CURRENT_LINK/$COMPOSE_FILE"
+else
+    echo "ERROR: $COMPOSE_FILE não encontrado em $CURRENT_LINK/"
+    echo "Arquivos no diretório:"
+    ls -la "$CURRENT_LINK/"
+    exit 1
+fi
 
 echo "🚀 Iniciando deploy no servidor EC2..."
 
 # --- DOCKER ---
-# (Re)constrói e sobe os containers MINIMIZANDO O DOWNTIME
 echo "INFO: 🐳 Subindo containers com Docker Compose..."
 docker compose up -d --build --remove-orphans
 
 # --- BANCO DE DADOS E APLICAÇÃO ---
-# Aplica migrações do Django
 echo "INFO: 🛠️ Aplicando migrações..."
 docker compose exec api python manage.py migrate
 
-# Carrega dados iniciais (se necessário) - **Atenção à idempotência**
 echo "INFO: 📥 Carregando dados iniciais (se aplicável)..."
-docker compose exec api python manage.py loaddata address
-docker compose exec api python manage.py loaddata lacreiid-privacy-docs
-docker compose exec api python manage.py loaddata lacreiid-intersectionality
-docker compose exec api python manage.py loaddata lacreisaude
+docker compose exec api python manage.py loaddata address || true
+docker compose exec api python manage.py loaddata lacreiid-privacy-docs || true
+docker compose exec api python manage.py loaddata lacreiid-intersectionality || true
+docker compose exec api python manage.py loaddata lacreisaude || true
 
 docker compose exec -T \
   -e DJANGO_SUPERUSER_EMAIL=teste@teste.com \
@@ -71,7 +72,7 @@ docker compose exec -T \
 # --- LIMPEZA DE RELEASES ANTIGAS ---
 echo "INFO: 🧹 Limpando releases antigas (mantendo as últimas $RELEASES_TO_KEEP)..."
 cd "$RELEASES_DIR"
-ls -1dt */ | tail -n +$(($RELEASES_TO_KEEP + 1)) | xargs -r sudo rm -rf
+ls -1dt */ | tail -n +$(($RELEASES_TO_KEEP + 1)) | xargs -r rm -rf
 
 # --- VERIFICAÇÃO FINAL ---
 echo "INFO: ✅ Containers em execução:"
