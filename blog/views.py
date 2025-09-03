@@ -41,33 +41,33 @@ class PostViewSet(viewsets.ModelViewSet):
             is_active=True,
         ).order_by("created_dateTime")
 
-    def perform_create(self, serializer):
-        payload, error = check_login(self.request)
+    def create(self, request, *args, **kwargs):
+        payload, error = check_login(request)
         if error:
             return Response(
                 {"error": "user not logged-in"}, status=status.HTTP_401_UNAUTHORIZED
             )
-        try:
-            user_id = payload.get("id")
-            user = Users.objects.get(id=user_id)
-            author_ip_address = get_author_ip(self.request)
-            time_post = timezone.now()
-            if not user_id:
-                return Response(
-                    {"error": "username not found in token"},
-                    status=status.HTTP_401_UNAUTHORIZED,
-                )
-            serializer.save(
-                username=user, author_ip=author_ip_address, created_dateTime=time_post
-            )  # save the post with the username_id, author_ip and shows the username
-        except Users.DoesNotExist:
-            # Se o usuário do token não existe mais no banco, levanta uma exceção (resposta 400).
-            raise ValidationError(
-                "O usuário associado a este token não foi encontrado."
+        user_id = payload.get("id")
+        if not Users.objects.filter(id=user_id).exists():
+            return Response(
+                {"error": "user not found in database"},
+                status=status.HTTP_401_UNAUTHORIZED,
             )
-        except Exception as e:
-            # Captura outros erros inesperados.
-            raise ValidationError(f"Ocorreu um erro inesperado: {str(e)}")
+        return super().create(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        payload, error = check_login(self.request)
+        if error:
+            raise ValidationError("User not authenticated")
+
+        user_id = payload.get("id")
+        user = Users.objects.get(id=user_id)
+        author_ip_address = get_author_ip(self.request)
+        time_post = timezone.now()
+
+        serializer.save(
+            username=user, author_ip=author_ip_address, created_dateTime=time_post
+        )
 
     def list(self, request, *args, **kwargs):
         payload, error = check_login(request)
@@ -78,7 +78,6 @@ class PostViewSet(viewsets.ModelViewSet):
             )
 
         queryset = self.filter_queryset(self.get_queryset())
-        # retorna os posts paginados.
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
@@ -87,7 +86,7 @@ class PostViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-    def patch(self, request, *args, **kwargs):
+    def partial_update(self, request, *args, **kwargs):
         payload, error = check_login(request)
         if error:
             return Response(
@@ -97,18 +96,18 @@ class PostViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         logged_user_id = payload.get("id")
 
-        logged_user = self.get_object()
-        if not logged_user:
+        if not Users.objects.filter(id=logged_user_id).exists():
             return Response(
-                {"error": "username not found in token"},
+                {"error": "user not found in database"},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
+
         if instance.username.id != logged_user_id:
             return Response(
                 {"error": "You can only update your own posts"},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        return super().patch(request, *args, **kwargs)
+        return super().partial_update(request, *args, **kwargs)
 
     def destroy(self, request, *args, **kwargs):
         # delete the post(soft delete)
