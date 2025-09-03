@@ -54,7 +54,7 @@ echo "🚀 Iniciando deploy no servidor EC2..."
 
 # --- DOCKER ---
 echo "INFO: 🐳 Subindo containers com Docker Compose..."
-docker compose up -d --build --remove-orphans
+docker-compose up -d --build --remove-orphans
 
 # --- BANCO DE DADOS E APLICAÇÃO ---
 echo "INFO: 🛠️ Aplicando migrações..."
