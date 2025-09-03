@@ -4,23 +4,23 @@ services:
   web:
     # Constrói a imagem a partir do Dockerfile no diretório atual
     build: .
-    
+
     # Mapeia a porta 8000 do container para a porta 8000 na máquina host
     ports:
       - "8000:8000"
-      
+
     # Mapeia a pasta do seu projeto local para a pasta /app no container
     # Isso é ótimo para o desenvolvimento, pois mudanças no código refletem imediatamente
     volumes:
       - .:/app
-      
+
     # Comando para iniciar o servidor do Django
     command: python manage.py runserver 0.0.0.0:8000
-    
+
     # Carrega as variáveis de ambiente do arquivo .env
     env_file:
       - .env
-      
+
     # Define a rede para o serviço
     networks:
       - web_network

@@ -2,22 +2,22 @@
 
 ## Overview
 
-This API provides functionality for user authentication and blog post management. 
+This API provides functionality for user authentication and blog post management.
 It allows users to register, login, create posts, and manage their own content.
 
 ## Technologies Used
 
-- **Backend Framework:** Django REST Framework  
-- **Authentication:** JWT (JSON Web Tokens)  
-- **Database:** Postgres   
-- **Python Version:** 3.13.15  
+- **Backend Framework:** Django REST Framework
+- **Authentication:** JWT (JSON Web Tokens)
+- **Database:** Postgres
+- **Python Version:** 3.13.15
 
 ### Dependencies
 
-- Django  
-- djangorestframework  
-- PyJWT  
-- django-cors-headers  
+- Django
+- djangorestframework
+- PyJWT
+- django-cors-headers
 
 ---
 
@@ -25,8 +25,8 @@ It allows users to register, login, create posts, and manage their own content.
 
 ### Prerequisites
 
-- Python 3.12+ installed  
-- `pip` package manager  
+- Python 3.12+ installed
+- `pip` package manager
 - Virtual environment (recommended)
 
 ### Setup Steps
@@ -66,7 +66,7 @@ It allows users to register, login, create posts, and manage their own content.
    python manage.py runserver
    ```
 
-   The API will be available at:  
+   The API will be available at:
    **http://localhost:8000/**
 
 ---
@@ -77,9 +77,9 @@ It allows users to register, login, create posts, and manage their own content.
 
 #### User Registration
 
-- **URL:** `/users/register/`  
-- **Method:** `POST`  
-- **Description:** Register a new user  
+- **URL:** `/users/register/`
+- **Method:** `POST`
+- **Description:** Register a new user
 - **Request Body:**
   ```json
   {
@@ -91,9 +91,9 @@ It allows users to register, login, create posts, and manage their own content.
 
 #### User Login
 
-- **URL:** `/users/login/`  
-- **Method:** `POST`  
-- **Description:** Authenticate user and get JWT tokens  
+- **URL:** `/users/login/`
+- **Method:** `POST`
+- **Description:** Authenticate user and get JWT tokens
 - **Request Body:**
   ```json
   {
@@ -109,10 +109,10 @@ It allows users to register, login, create posts, and manage their own content.
 
 #### List/Create Posts
 
-- **URL:** `/blog/posts/`  
+- **URL:** `/blog/posts/`
 - **Methods:**
-  - `GET`: List all active posts  
-  - `POST`: Create a new post (requires authentication)  
+  - `GET`: List all active posts
+  - `POST`: Create a new post (requires authentication)
 - **POST Request Body:**
   ```json
   {
@@ -125,10 +125,10 @@ It allows users to register, login, create posts, and manage their own content.
 
 #### Retrieve/Update/Delete Post
 
-- **URL:** `/blog/posts/<int:pk>/`  
+- **URL:** `/blog/posts/<int:pk>/`
 - **Methods:**
-  - `PATCH`: Update a post (only by owner)  
-  - `DELETE`: Soft delete a post (only by owner)  
+  - `PATCH`: Update a post (only by owner)
+  - `DELETE`: Soft delete a post (only by owner)
 - **PATCH Request Body:**
   ```json
   {
@@ -151,19 +151,19 @@ It allows users to register, login, create posts, and manage their own content.
 
 ## Error Responses
 
-- **401 Unauthorized:** Authentication failed or token is invalid  
-- **403 Forbidden:** User tries to modify another user's post  
-- **404 Not Found:** Resource does not exist  
-- **400 Bad Request:** Request data is invalid  
+- **401 Unauthorized:** Authentication failed or token is invalid
+- **403 Forbidden:** User tries to modify another user's post
+- **404 Not Found:** Resource does not exist
+- **400 Bad Request:** Request data is invalid
 
 ---
 
 ## Security Features
 
-- JWT authentication with HTTP-only cookies  
-- CSRF protection  
-- Secure and SameSite cookie attributes  
-- Password hashing  
+- JWT authentication with HTTP-only cookies
+- CSRF protection
+- Secure and SameSite cookie attributes
+- Password hashing
 - Soft delete for posts (no permanent deletion)
 
 ---
