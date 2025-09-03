@@ -3,7 +3,7 @@ set -e
 
 # --- CONFIGURAÇÃO ---
 # Usuário no servidor remoto
-USER=$(whoami)
+USER="ubuntu"
 # Nome do arquivo docker-compose
 COMPOSE_FILE="docker-compose.yml"
 # Diretório base da aplicação no servidor
