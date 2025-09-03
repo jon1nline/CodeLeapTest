@@ -29,7 +29,7 @@ SECRET_KEY = os.getenv("JWT_SECRET", "chaveaqui")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['54.242.30.117']
 
 
 # Application definition
