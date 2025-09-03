@@ -16,6 +16,8 @@ jobs:
         image: postgres:15
         env:
           POSTGRES_PASSWORD: 123456
+          POSTGRES_DB: test_db
+          POSTGRES_USER: postgres
         ports:
           - 5432:5432
         options: --health-cmd "pg_isready" --health-interval 10s --health-timeout 5s --health-retries 5
@@ -35,21 +37,53 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Rodar verificações de código
+      - name: Configurar variáveis de ambiente para testes
         run: |
-          echo "Rodando verificações de código..."
+          echo "DATABASE_NAME=test_db" >> $GITHUB_ENV
+          echo "DATABASE_USER=postgres" >> $GITHUB_ENV
+          echo "DATABASE_PASSWORD=123456" >> $GITHUB_ENV
+          echo "DATABASE_HOST=localhost" >> $GITHUB_ENV
+          echo "DATABASE_PORT=5432" >> $GITHUB_ENV
+
+      - name: Gerar migrações
+        run: |
+          python manage.py makemigrations
+        env:
+          DATABASE_NAME: test_db
+          DATABASE_USER: postgres
+          DATABASE_PASSWORD: 123456
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
+
+      - name: Verificar migrações pendentes
+        run: |
+          echo "Verificando se há migrações pendentes..."
           python manage.py makemigrations --check --dry-run
         env:
-          POSTGRES_PASSWORD: 123456
+          DATABASE_NAME: test_db
+          DATABASE_USER: postgres
+          DATABASE_PASSWORD: 123456
           DATABASE_HOST: localhost
-          POSTGRES_PORT: ${{ job.services.postgres.ports[5432] }}
+          DATABASE_PORT: 5432
+
+      - name: Aplicar migrações
+        run: |
+          python manage.py migrate
+        env:
+          DATABASE_NAME: test_db
+          DATABASE_USER: postgres
+          DATABASE_PASSWORD: 123456
+          DATABASE_HOST: localhost
+          DATABASE_PORT: 5432
 
       - name: Rodar testes e cobertura de código
         run: pytest --cov=.
         env:
-          POSTGRES_PASSWORD: 123456
+          DATABASE_NAME: test_db
+          DATABASE_USER: postgres
+          DATABASE_PASSWORD: 123456
           DATABASE_HOST: localhost
-          POSTGRES_PORT: ${{ job.services.postgres.ports[5432] }}
+          DATABASE_PORT: 5432
 
       - name: Rodar Horusec (Análise de Segurança)
         id: run_horusec
