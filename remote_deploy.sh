@@ -7,16 +7,6 @@ USER="ubuntu"
 # Diretório onde o novo código será copiado
 APP_DIR="/home/$USER/deploy"
 # Diretório para onde o deploy anterior será movido
-BACKUP_DIR="/home/$USER/backup/$(date +%Y%m%d%H%M%S)"
-
-# --- BACKUP DO DEPLOY ATUAL ---
-echo "INFO: Verificando se existe um deploy anterior para backup..."
-if [ -d "$APP_DIR" ]; then
-    echo "INFO: Movendo o deploy atual para $BACKUP_DIR"
-    mkdir -p "$BACKUP_DIR"
-    mv "$APP_DIR/"* "$BACKUP_DIR/"
-    rmdir "$APP_DIR"
-fi
 
 
 echo "INFO: Renomeando .env.example para .env"
