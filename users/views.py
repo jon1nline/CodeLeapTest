@@ -7,9 +7,10 @@ from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from utils.jwt_utils import criar_token
+
 from .models import Users
 from .serializers import LoginSerializer, UserSerializer
-from .utils.jwt_utils import criar_token
 
 
 class UserRegister(generics.CreateAPIView):
@@ -39,24 +40,7 @@ class UserLogin(generics.RetrieveUpdateDestroyAPIView):
 
         token = criar_token(user)
 
-        response = JsonResponse({"message": "Usuário conectado."})
-
-        response.set_cookie(
-            "access_token",
-            token["access"],
-            httponly=True,
-            secure=False,
-            samesite="Strict",
-        )
-
-        response.set_cookie(
-            "refresh_token",
-            token["refresh"],
-            httponly=True,
-            secure=False,
-            samesite="Strict",
-            max_age=604800,  # dura 7 dias
-        )
+        response = JsonResponse(token)
 
         return response
 

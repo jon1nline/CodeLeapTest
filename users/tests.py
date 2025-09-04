@@ -1,4 +1,6 @@
 # Create your tests here.
+import json
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework import status
@@ -17,19 +19,19 @@ class UserLoginTests(TestCase):
         )
 
     def test_login_success(self):
-        """Teste de login bem-sucedido"""
         data = {"username": "testuser", "password": "testpassword123"}
 
         response = self.client.post(self.login_url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        response_data = json.loads(response.content)
 
-        self.assertIn("access_token", response.cookies)
-        self.assertIn("refresh_token", response.cookies)
-        self.assertTrue(response.cookies["access_token"].value)
-        self.assertTrue(response.cookies["refresh_token"].value)
+        self.assertIn("access", response_data)
+        self.assertIn("refresh", response_data)
+
+        self.assertTrue(response_data["access"])
+        self.assertTrue(response_data["refresh"])
 
     def test_login_wrong_password(self):
-        """Teste de login com senha incorreta"""
         data = {"username": "testuser", "password": "wrongpassword"}
 
         response = self.client.post(self.login_url, data, format="json")
@@ -38,7 +40,6 @@ class UserLoginTests(TestCase):
         self.assertEqual(response.data["detail"], "incorrect username or password")
 
     def test_login_nonexistent_user(self):
-        """Teste de login com usuário inexistente"""
         data = {"username": "nonexistent", "password": "anypassword"}
 
         response = self.client.post(self.login_url, data, format="json")
@@ -47,7 +48,6 @@ class UserLoginTests(TestCase):
         self.assertEqual(response.data["detail"], "incorrect username or password")
 
     def test_login_missing_fields(self):
-        """Teste de login com campos faltando"""
         data = {"password": "testpassword123"}
         response = self.client.post(self.login_url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
@@ -63,7 +63,6 @@ class UserRegisterTests(TestCase):
         self.register_url = "/users/register/"
 
     def test_register_success(self):
-        """Teste de registro bem-sucedido"""
         data = {
             "username": "newuser",
             "email": "newuser@example.com",
@@ -76,7 +75,6 @@ class UserRegisterTests(TestCase):
         self.assertTrue(Users.objects.filter(username="newuser").exists())
 
     def test_register_duplicate_username(self):
-        """Teste de registro com username duplicado"""
         Users.objects.create_user(
             username="existinguser",
             email="existing@example.com",
@@ -93,7 +91,6 @@ class UserRegisterTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_register_missing_fields(self):
-        """Teste de registro com campos faltando"""
         data = {"email": "test@example.com", "password": "password123"}
         response = self.client.post(self.register_url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

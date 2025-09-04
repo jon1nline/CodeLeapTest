@@ -148,10 +148,10 @@ It allows users to register, login, create posts, and manage their own content.
 ## Authentication Flow
 
 1. User registers via `/users/register/`
-2. User logs in via `/users/login/` which sets HTTP-only cookies:
+2. User logs in via `/users/login/` which return cookies:
    - `access_token`: Short-lived token for API access
    - `refresh_token`: Long-lived token for getting new access tokens
-3. Subsequent requests automatically include these cookies for authentication
+3. To use the token: add Bearer + <acess_token>
 
 ---
 
@@ -185,6 +185,6 @@ You can test the API using SwaggerUI:
 ```bash
 curl -X POST http://localhost:8000/blog/posts/ \
   -H "Content-Type: application/json" \
-  -H "Cookie: access_token=your_access_token_here" \
+  -H "Authorization: Bearer <your_access_token_here>" \
   -d '{"title":"My Post", "content":"This is my first post", "author_ip": "MyIP", likes: 0}'
 ```

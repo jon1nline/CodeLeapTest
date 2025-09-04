@@ -29,7 +29,7 @@ SECRET_KEY = os.getenv("JWT_SECRET", "chaveaqui")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['54.242.30.117']
+ALLOWED_HOSTS = ["54.242.30.117", "127.0.0.1"]
 
 
 # Application definition
@@ -142,4 +142,14 @@ REST_FRAMEWORK = {
         "rest_framework.renderers.JSONRenderer",
         "rest_framework.renderers.BrowsableAPIRenderer",
     ],
+    "DEFAULT_AUTHENTICATION_CLASSES": ("utils.auth.CustomJWTAuthentication",),
+}
+SWAGGER_SETTINGS = {
+    "SECURITY_DEFINITIONS": {
+        "Bearer": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+        }
+    }
 }

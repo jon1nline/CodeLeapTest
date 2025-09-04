@@ -1,8 +1,7 @@
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
 import jwt
 from django.test import TestCase
-from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -17,19 +16,32 @@ class PostViewSetTestCase(TestCase):
         self.client = APIClient()
         self.base_url = "/posts/"
 
-        # 1. Create user, login and save tokens on cookies.
         self.user = Users.objects.create_user(
             username="testuser", email="test@example.com", password="somepassword123"
         )
         self.other_user = Users.objects.create_user(
             username="otheruser", email="otheruser@test.com", password="password456"
         )
+
         payload = {
             "id": self.user.id,
-            "username": self.user.username,
+            "token_type": "access",
+            "exp": datetime.now(timezone.utc) + timedelta(minutes=60),
+            "iat": datetime.now(timezone.utc),
         }
-        token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
-        self.client.cookies.load({"access_token": token})
+        self.token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
+
+        other_user_payload = {
+            "id": self.other_user.id,
+            "token_type": "access",
+            "exp": datetime.now(timezone.utc) + timedelta(minutes=60),
+            "iat": datetime.now(timezone.utc),
+        }
+        self.other_user_token = jwt.encode(
+            other_user_payload, settings.SECRET_KEY, algorithm="HS256"
+        )
+
+        self.auth_headers = {"HTTP_AUTHORIZATION": f"Bearer {self.token}"}
 
         self.valid_payload = {"title": "First Post", "content": "My first post"}
 
@@ -38,7 +50,7 @@ class PostViewSetTestCase(TestCase):
             content="Content 1",
             username=self.user,
             author_ip="192.168.1.1",
-            created_dateTime=timezone.now() - timedelta(days=1),
+            created_dateTime=datetime.now(timezone.utc) - timedelta(days=1),
             is_active=True,
         )
 
@@ -47,71 +59,72 @@ class PostViewSetTestCase(TestCase):
             content="Content 2",
             username=self.user,
             author_ip="192.168.1.1",
-            created_dateTime=timezone.now() - timedelta(days=1),
+            created_dateTime=datetime.now(timezone.utc) - timedelta(days=1),
             is_active=True,
         )
 
     def test_list_posts_not_authenticated(self):
-        self.client.cookies["access_token"] = None
         response = self.client.get(self.base_url)
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_list_posts_authenticated(self):
-        response = self.client.get(self.base_url)
+        response = self.client.get(self.base_url, **self.auth_headers)
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_new_posts_not_authenticated(self):
-        self.client.cookies["access_token"] = ""
         response = self.client.post(self.base_url, self.valid_payload, format="json")
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_new_posts_authenticated(self):
-        response = self.client.post(self.base_url, self.valid_payload, format="json")
+        response = self.client.post(
+            self.base_url, self.valid_payload, format="json", **self.auth_headers
+        )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_update_post_owner(self):
         edit_url = f"{self.base_url}{self.post1.id}/"
         data = {"title": "Updated Title", "content": "Updated Content"}
-        response = self.client.patch(edit_url, data, format="json")
+
+        auth_headers = {"HTTP_AUTHORIZATION": f"Bearer {self.token}"}
+        response = self.client.patch(edit_url, data, format="json", **auth_headers)
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_update_post_not_owner(self):
-        payload = {
-            "id": self.other_user.id,
-            "username": self.other_user.username,
-        }
-        token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
-        self.client.cookies["access_token"] = token
         edit_url = f"{self.base_url}{self.post1.id}/"
         data = {"title": "Updated Title 2", "content": "Updated Content 2"}
-        response = self.client.patch(edit_url, data, format="json")
+
+        auth_headers = {"HTTP_AUTHORIZATION": f"Bearer {self.other_user_token}"}
+        response = self.client.patch(edit_url, data, format="json", **auth_headers)
+
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_delete_post_owner(self):
-        self.client.force_authenticate(user=self.user)
         delete_url = f"{self.base_url}{self.post1.id}/"
-        response = self.client.delete(delete_url)
+
+        auth_headers = {"HTTP_AUTHORIZATION": f"Bearer {self.token}"}
+        response = self.client.delete(delete_url, **auth_headers)
+
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.post1.refresh_from_db()
         self.assertFalse(self.post1.is_active)
 
     def test_delete_post_not_owner(self):
-        payload = {
-            "id": self.other_user.id,
-            "username": self.other_user.username,
-        }
-        token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
-        self.client.cookies["access_token"] = token
         delete_url = f"{self.base_url}{self.post1.id}/"
-        response = self.client.delete(delete_url)
+        auth_headers = {"HTTP_AUTHORIZATION": f"Bearer {self.other_user_token}"}
+        response = self.client.delete(delete_url, **auth_headers)
+
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.post1.refresh_from_db()
         self.assertTrue(self.post1.is_active)
 
     def test_delete_post_unauthenticated(self):
-        self.client.cookies["access_token"] = ""
         delete_url = f"{self.base_url}{self.post1.id}/"
         response = self.client.delete(delete_url)
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
         self.post1.refresh_from_db()
         self.assertTrue(self.post1.is_active)
