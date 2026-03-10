@@ -23,9 +23,7 @@ class PostViewSetTestCase(TestCase):
         )
 
         self.token = str(RefreshToken.for_user(self.user).access_token)
-        self.other_user_token = str(
-            RefreshToken.for_user(self.other_user).access_token
-        )
+        self.other_user_token = str(RefreshToken.for_user(self.other_user).access_token)
 
         self.auth_headers = {"HTTP_AUTHORIZATION": f"Bearer {self.token}"}
 
@@ -122,3 +120,58 @@ class PostViewSetTestCase(TestCase):
 
         self.post1.refresh_from_db()
         self.assertTrue(self.post1.is_active)
+
+    def test_soft_deleted_post_not_in_list(self):
+        self.post1.is_active = False
+        self.post1.save()
+
+        response = self.client.get(self.base_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        ids = [p["id"] for p in response.data["results"]]
+        self.assertNotIn(self.post1.id, ids)
+        self.assertIn(self.post2.id, ids)
+
+    def test_create_post_missing_title(self):
+        response = self.client.post(
+            self.base_url,
+            {"content": "no title here"},
+            format="json",
+            **self.auth_headers,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_post_missing_content(self):
+        response = self.client.post(
+            self.base_url,
+            {"title": "No content"},
+            format="json",
+            **self.auth_headers,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_list_posts_ordering_newest_first(self):
+        response = self.client.get(self.base_url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        newer = self.client.post(
+            self.base_url,
+            {"title": "Newer Post", "content": "fresh"},
+            format="json",
+            **self.auth_headers,
+        )
+        self.assertEqual(newer.status_code, status.HTTP_201_CREATED)
+        newer_id = newer.data["id"]
+
+        response = self.client.get(self.base_url)
+        self.assertEqual(response.data["results"][0]["id"], newer_id)
+
+    def test_search_filter(self):
+        response = self.client.get(self.base_url, {"search": "Post 1"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        titles = [p["title"] for p in response.data["results"]]
+        self.assertIn("Post 1", titles)
+        self.assertNotIn("Post 2", titles)
+
+    def test_nonexistent_post_returns_404(self):
+        response = self.client.get(f"{self.base_url}99999/")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

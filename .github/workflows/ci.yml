@@ -1,0 +1,117 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install pre-commit
+        run: pip install pre-commit
+
+      - name: Cache pre-commit environments
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: Run hooks
+        run: pre-commit run --all-files
+
+  test:
+    name: Tests & Coverage
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: ci_db
+          POSTGRES_USER: ci_user
+          POSTGRES_PASSWORD: ci_pass
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DJANGO_SECRET_KEY: ci-test-secret-key-not-for-production
+      DJANGO_DEBUG: "True"
+      DJANGO_ALLOWED_HOSTS: "localhost,127.0.0.1"
+      DATABASE_NAME: ci_db
+      DATABASE_USER: ci_user
+      DATABASE_PASSWORD: ci_pass
+      DATABASE_HOST: 127.0.0.1
+      DATABASE_PORT: 5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt coverage
+
+      - name: Run tests with coverage
+        run: coverage run manage.py test
+
+      - name: Check coverage threshold
+        run: coverage report
+
+      - name: Export coverage XML
+        run: coverage xml
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+  security:
+    name: Horusec Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Horusec CLI
+        run: |
+          curl -fsSL \
+            https://github.com/ZupIT/horusec/releases/download/v2.9.0-beta.3/horusec_linux_amd64 \
+            -o horusec
+          chmod +x horusec
+
+      - name: Run Horusec
+        run: |
+          ./horusec start \
+            -p . \
+            --output-format json \
+            --output-file horusec-result.json \
+            --log-level error \
+            --enable-docker=false \
+            -i="**/migrations/**,**/.venv/**,**/tests.py,**/.git/**" \
+            --return-error || echo "::warning::Horusec found vulnerabilities — check the artifact"
+
+      - name: Upload Horusec report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: horusec-report
+          path: horusec-result.json

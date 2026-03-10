@@ -63,6 +63,18 @@ class UserLoginTests(TestCase):
         self.assertEqual(refresh_response.status_code, status.HTTP_200_OK)
         self.assertIn("access", refresh_response.data)
 
+    def test_refresh_invalid_token(self):
+        response = self.client.post(
+            self.refresh_url,
+            {"refresh": "this.is.not.a.valid.token"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_refresh_missing_token(self):
+        response = self.client.post(self.refresh_url, {}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_login_missing_fields(self):
         data = {"password": "testpassword123"}
         response = self.client.post(self.login_url, data, format="json")
@@ -116,5 +128,19 @@ class UserRegisterTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
         data = {"username": "testuser", "email": "test@example.com"}
+        response = self.client.post(self.register_url, data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_register_duplicate_email(self):
+        Users.objects.create_user(
+            username="user1",
+            email="duplicate@example.com",
+            password="password123",
+        )
+        data = {
+            "username": "user2",
+            "email": "duplicate@example.com",
+            "password": "password456",
+        }
         response = self.client.post(self.register_url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)

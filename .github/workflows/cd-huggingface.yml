@@ -1,0 +1,45 @@
+name: CD – Hugging Face Spaces
+
+on:
+  workflow_run:
+    workflows: [CI]
+    branches: [main]
+    types: [completed]
+
+jobs:
+  deploy:
+    name: Push to HF Spaces
+    runs-on: ubuntu-latest
+    # Only run when the triggering CI workflow succeeded
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Inject Hugging Face Spaces metadata into README
+        run: |
+          if ! grep -q "^sdk:" README.md; then
+            printf -- '---\ntitle: CodeLeap Blog API\nsdk: docker\napp_port: 8000\n---\n\n' \
+              | cat - README.md > README.tmp && mv README.tmp README.md
+          fi
+
+      - name: Configure git identity
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add Hugging Face remote
+        run: |
+          git remote add space \
+            https://user:${{ secrets.HF_TOKEN }}@huggingface.co/spaces/${{ secrets.HF_SPACE }}
+
+      - name: Commit README metadata (if changed)
+        run: |
+          git add README.md
+          git diff --cached --quiet \
+            || git commit -m "chore: add Hugging Face Spaces front-matter"
+
+      - name: Push to Hugging Face Spaces
+        run: git push space HEAD:main --force

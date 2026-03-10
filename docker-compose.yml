@@ -1,29 +1,44 @@
 version: '3.8'
 
 services:
-  web:
-    # Constrói a imagem a partir do Dockerfile no diretório atual
-    build: .
-
-    # Mapeia a porta 8000 do container para a porta 8000 na máquina host
-    ports:
-      - "8000:8000"
-
-    # Mapeia a pasta do seu projeto local para a pasta /app no container
-    # Isso é ótimo para o desenvolvimento, pois mudanças no código refletem imediatamente
-    volumes:
-      - .:/app
-
-    # Comando para iniciar o servidor do Django
-    command: python manage.py runserver 0.0.0.0:8000
-
-    # Carrega as variáveis de ambiente do arquivo .env
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
     env_file:
       - .env
-
-    # Define a rede para o serviço
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER} -d ${DATABASE_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - web_network
+
+  web:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      DATABASE_HOST: db
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - web_network
+
+volumes:
+  postgres_data:
 
 networks:
   web_network:

@@ -8,16 +8,19 @@ It allows users to register, login, create posts, and manage their own content.
 ## Technologies Used
 
 - **Backend Framework:** Django REST Framework
-- **Authentication:** JWT (JSON Web Tokens)
-- **Database:** Postgres
-- **Python Version:** 3.13.15
+- **Authentication:** JWT (SimpleJWT)
+- **Database:** PostgreSQL 16
+- **Python Version:** 3.11
 
 ### Dependencies
 
 - Django
 - djangorestframework
-- PyJWT
+- djangorestframework-simplejwt
 - django-cors-headers
+- drf-yasg
+- python-dotenv
+- psycopg2-binary
 
 ---
 
@@ -69,6 +72,50 @@ It allows users to register, login, create posts, and manage their own content.
    The API will be available at:
    **http://localhost:8000/**
 
+7. **Install pre-commit hooks (recommended)**
+   ```bash
+   pre-commit install
+   ```
+
+8. **Run lint/format hooks manually**
+   ```bash
+   pre-commit run --all-files
+   ```
+
+---
+
+## Docker Setup
+
+### Prerequisites
+
+- Docker and Docker Compose installed
+
+### Steps
+
+1. **Copy and configure environment**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your values
+   ```
+
+2. **Start all services** (API + PostgreSQL)
+   ```bash
+   docker compose up --build
+   ```
+
+   Migrations run automatically on startup.
+   The API will be available at **http://localhost:8000/**
+
+3. **Stop services**
+   ```bash
+   docker compose down
+   ```
+
+   To also remove the database volume:
+   ```bash
+   docker compose down -v
+   ```
+
 ---
 
 ## API Endpoints
@@ -101,7 +148,7 @@ It allows users to register, login, create posts, and manage their own content.
     "password": "string"
   }
   ```
-- **Response:** Sets HTTP-only cookies with access and refresh tokens
+- **Response:** Returns `access` and `refresh` tokens
 
 #### Refresh Access Token
 

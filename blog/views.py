@@ -1,5 +1,6 @@
 from django.db.models import Q
 from rest_framework import filters, permissions, viewsets
+
 from utils.permissions import IsOwnerOrReadOnly
 
 from .models import Posts
