@@ -6,8 +6,10 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from users.models import Users
+from utils.permissions import IsOwnerOrReadOnly
 
 from .models import Posts
+from .views import get_author_ip
 
 
 class PostViewSetTestCase(TestCase):
@@ -175,3 +177,66 @@ class PostViewSetTestCase(TestCase):
     def test_nonexistent_post_returns_404(self):
         response = self.client.get(f"{self.base_url}99999/")
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_query_filter(self):
+        response = self.client.get(self.base_url, {"query": "Content 1"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        titles = [p["title"] for p in response.data["results"]]
+        self.assertIn("Post 1", titles)
+        self.assertNotIn("Post 2", titles)
+
+    def test_author_filter(self):
+        response = self.client.get(self.base_url, {"author": "testuser"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertGreaterEqual(len(response.data["results"]), 2)
+
+        response = self.client.get(self.base_url, {"author": "missing-user"})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["results"], [])
+
+    def test_get_author_ip_prefers_forwarded_header(self):
+        request = self.client.get(
+            self.base_url,
+            HTTP_X_FORWARDED_FOR="203.0.113.10, 10.0.0.1",
+            REMOTE_ADDR="127.0.0.1",
+        ).wsgi_request
+
+        self.assertEqual(get_author_ip(request), "203.0.113.10")
+
+    def test_get_author_ip_falls_back_to_remote_addr(self):
+        request = self.client.get(self.base_url, REMOTE_ADDR="127.0.0.1").wsgi_request
+
+        self.assertEqual(get_author_ip(request), "127.0.0.1")
+
+    def test_post_string_representation(self):
+        self.assertEqual(str(self.post1), "Post 1")
+
+
+class IsOwnerOrReadOnlyTests(TestCase):
+    def setUp(self):
+        self.permission = IsOwnerOrReadOnly()
+        self.user = Users.objects.create_user(
+            username="permissionuser",
+            email="permission@example.com",
+            password="permission123",
+        )
+        self.post = Posts.objects.create(
+            title="Permission Post",
+            content="Permission Content",
+            username=self.user,
+            author_ip="127.0.0.1",
+        )
+
+    def test_safe_method_is_allowed(self):
+        request = self.client.get("/posts/").wsgi_request
+
+        self.assertTrue(
+            self.permission.has_object_permission(request, view=None, obj=self.post)
+        )
+
+    def test_unsafe_method_without_authenticated_user_is_denied(self):
+        request = self.client.patch(f"/posts/{self.post.id}/", {}).wsgi_request
+
+        self.assertFalse(
+            self.permission.has_object_permission(request, view=None, obj=self.post)
+        )

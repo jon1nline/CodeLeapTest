@@ -144,3 +144,30 @@ class UserRegisterTests(TestCase):
         }
         response = self.client.post(self.register_url, data, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+
+class UserModelTests(TestCase):
+    def test_create_user_requires_username(self):
+        with self.assertRaisesMessage(ValueError, "The username must be set"):
+            Users.objects.create_user(
+                username="",
+                email="missing-username@example.com",
+                password="password123",
+            )
+
+    def test_create_user_requires_email(self):
+        with self.assertRaisesMessage(ValueError, "The Email must be set"):
+            Users.objects.create_user(
+                username="missingemail",
+                email="",
+                password="password123",
+            )
+
+    def test_user_string_representation(self):
+        user = Users.objects.create_user(
+            username="stringuser",
+            email="string@example.com",
+            password="password123",
+        )
+
+        self.assertEqual(str(user), "string@example.com")
