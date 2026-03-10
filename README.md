@@ -225,10 +225,22 @@ It allows users to register, login, create posts, and manage their own content.
 ## Security Features
 
 - JWT authentication with Bearer token (SimpleJWT)
+- Request throttling (rate limit) for anonymous/authenticated users
+- Strict throttling for `/users/register/`, `/users/login/` and `/users/refresh/`
 - CSRF protection
 - Secure and SameSite cookie attributes
 - Password hashing
 - Soft delete for posts (no permanent deletion)
+
+### Throttling configuration (environment)
+
+Configure in `.env` using Django REST Framework rate format:
+
+- `THROTTLE_ANON_RATE` (default: `60/minute`)
+- `THROTTLE_USER_RATE` (default: `120/minute`)
+- `THROTTLE_AUTH_REGISTER_RATE` (default: `10/minute`)
+- `THROTTLE_AUTH_LOGIN_RATE` (default: `10/minute`)
+- `THROTTLE_AUTH_REFRESH_RATE` (default: `20/minute`)
 
 ---
 
@@ -236,7 +248,7 @@ It allows users to register, login, create posts, and manage their own content.
 
 You can test the API using SwaggerUI:
 
-- **SwaggerUI API AWS DEPLOY:** [http://54.242.30.117/docs/](http://54.242.30.117/docs/)
+- **SwaggerUI API Spaces DEPLOY:** [https://jon1nline-codeleap.hf.space/docs/](https://jon1nline-codeleap.hf.space/docs/)
 
 ### Example `cURL` command for creating a post:
 

@@ -1,11 +1,15 @@
 from datetime import datetime, timedelta, timezone
 
+from django.contrib.auth.models import AnonymousUser
+from django.core.cache import cache
 from django.test import TestCase
 from rest_framework import status
-from rest_framework.test import APIClient
+from rest_framework.test import APIClient, APIRequestFactory
+from rest_framework.throttling import AnonRateThrottle
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from users.models import Users
+from users.views import UserLogin, UserRegister, UserTokenRefresh
 from utils.permissions import IsOwnerOrReadOnly
 
 from .models import Posts
@@ -240,3 +244,30 @@ class IsOwnerOrReadOnlyTests(TestCase):
         self.assertFalse(
             self.permission.has_object_permission(request, view=None, obj=self.post)
         )
+
+
+class RateLimitTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.factory = APIRequestFactory()
+
+    def test_auth_views_have_scoped_throttling(self):
+        self.assertEqual(UserRegister.throttle_scope, "auth_register")
+        self.assertEqual(UserLogin.throttle_scope, "auth_login")
+        self.assertEqual(UserTokenRefresh.throttle_scope, "auth_refresh")
+
+    def test_anon_throttle_blocks_after_limit(self):
+        class TestAnonThrottle(AnonRateThrottle):
+            rate = "2/minute"
+
+        throttle = TestAnonThrottle()
+        request = self.factory.get("/posts/", REMOTE_ADDR="127.0.0.1")
+        request.user = AnonymousUser()
+
+        cache_key = throttle.get_cache_key(request, view=None)
+        if cache_key:
+            cache.delete(cache_key)
+
+        self.assertTrue(throttle.allow_request(request, view=None))
+        self.assertTrue(throttle.allow_request(request, view=None))
+        self.assertFalse(throttle.allow_request(request, view=None))

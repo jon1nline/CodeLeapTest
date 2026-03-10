@@ -202,6 +202,18 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
+    "DEFAULT_THROTTLE_CLASSES": (
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+        "rest_framework.throttling.ScopedRateThrottle",
+    ),
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": os.getenv("THROTTLE_ANON_RATE", "60/minute"),
+        "user": os.getenv("THROTTLE_USER_RATE", "120/minute"),
+        "auth_register": os.getenv("THROTTLE_AUTH_REGISTER_RATE", "10/minute"),
+        "auth_login": os.getenv("THROTTLE_AUTH_LOGIN_RATE", "10/minute"),
+        "auth_refresh": os.getenv("THROTTLE_AUTH_REFRESH_RATE", "20/minute"),
+    },
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": env_int("API_PAGE_SIZE", default=10),
 }
