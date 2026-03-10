@@ -19,7 +19,7 @@ class UserManager(BaseUserManager):
 
 class Users(AbstractUser):
     username = models.CharField(unique=True, max_length=50)
-    password = models.CharField(max_length=200)
+    password = models.CharField(max_length=128)
     email = models.EmailField(unique=True)
 
     REQUIRED_FIELDS = ["email", "password"]

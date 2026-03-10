@@ -13,6 +13,7 @@ class UserLoginTests(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.login_url = "/users/login/"
+        self.refresh_url = "/users/refresh/"
 
         self.user = Users.objects.create_user(
             username="testuser", email="test@example.com", password="testpassword123"
@@ -37,7 +38,7 @@ class UserLoginTests(TestCase):
         response = self.client.post(self.login_url, data, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-        self.assertEqual(response.data["detail"], "incorrect username or password")
+        self.assertIn("detail", response.data)
 
     def test_login_nonexistent_user(self):
         data = {"username": "nonexistent", "password": "anypassword"}
@@ -45,7 +46,22 @@ class UserLoginTests(TestCase):
         response = self.client.post(self.login_url, data, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-        self.assertEqual(response.data["detail"], "incorrect username or password")
+        self.assertIn("detail", response.data)
+
+    def test_refresh_success(self):
+        login_data = {"username": "testuser", "password": "testpassword123"}
+        login_response = self.client.post(self.login_url, login_data, format="json")
+
+        self.assertEqual(login_response.status_code, status.HTTP_200_OK)
+        self.assertIn("refresh", login_response.data)
+
+        refresh_response = self.client.post(
+            self.refresh_url,
+            {"refresh": login_response.data["refresh"]},
+            format="json",
+        )
+        self.assertEqual(refresh_response.status_code, status.HTTP_200_OK)
+        self.assertIn("access", refresh_response.data)
 
     def test_login_missing_fields(self):
         data = {"password": "testpassword123"}

@@ -1,11 +1,10 @@
 from datetime import datetime, timedelta, timezone
 
-import jwt
 from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
+from rest_framework_simplejwt.tokens import RefreshToken
 
-from CodeLeapBlog import settings
 from users.models import Users
 
 from .models import Posts
@@ -23,22 +22,9 @@ class PostViewSetTestCase(TestCase):
             username="otheruser", email="otheruser@test.com", password="password456"
         )
 
-        payload = {
-            "id": self.user.id,
-            "token_type": "access",
-            "exp": datetime.now(timezone.utc) + timedelta(minutes=60),
-            "iat": datetime.now(timezone.utc),
-        }
-        self.token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
-
-        other_user_payload = {
-            "id": self.other_user.id,
-            "token_type": "access",
-            "exp": datetime.now(timezone.utc) + timedelta(minutes=60),
-            "iat": datetime.now(timezone.utc),
-        }
-        self.other_user_token = jwt.encode(
-            other_user_payload, settings.SECRET_KEY, algorithm="HS256"
+        self.token = str(RefreshToken.for_user(self.user).access_token)
+        self.other_user_token = str(
+            RefreshToken.for_user(self.other_user).access_token
         )
 
         self.auth_headers = {"HTTP_AUTHORIZATION": f"Bearer {self.token}"}
@@ -67,6 +53,11 @@ class PostViewSetTestCase(TestCase):
         response = self.client.get(self.base_url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("results", response.data)
+        self.assertGreaterEqual(len(response.data["results"]), 1)
+        self.assertNotIn("author_ip", response.data["results"][0])
+        self.assertIn("author", response.data["results"][0])
+        self.assertIn("created_at", response.data["results"][0])
 
     def test_list_posts_authenticated(self):
         response = self.client.get(self.base_url, **self.auth_headers)
@@ -76,13 +67,16 @@ class PostViewSetTestCase(TestCase):
     def test_new_posts_not_authenticated(self):
         response = self.client.post(self.base_url, self.valid_payload, format="json")
 
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
     def test_new_posts_authenticated(self):
         response = self.client.post(
             self.base_url, self.valid_payload, format="json", **self.auth_headers
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertNotIn("author_ip", response.data)
+        self.assertIn("author", response.data)
+        self.assertIn("created_at", response.data)
 
     def test_update_post_owner(self):
         edit_url = f"{self.base_url}{self.post1.id}/"
@@ -124,7 +118,7 @@ class PostViewSetTestCase(TestCase):
     def test_delete_post_unauthenticated(self):
         delete_url = f"{self.base_url}{self.post1.id}/"
         response = self.client.delete(delete_url)
-        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
         self.post1.refresh_from_db()
         self.assertTrue(self.post1.is_active)

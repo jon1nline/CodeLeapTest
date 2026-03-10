@@ -103,13 +103,25 @@ It allows users to register, login, create posts, and manage their own content.
   ```
 - **Response:** Sets HTTP-only cookies with access and refresh tokens
 
+#### Refresh Access Token
+
+- **URL:** `/users/refresh/`
+- **Method:** `POST`
+- **Description:** Generate a new access token from a valid refresh token
+- **Request Body:**
+  ```json
+  {
+    "refresh": "string"
+  }
+  ```
+
 ---
 
 ### Blog Posts
 
 #### List/Create Posts
 
-- **URL:** `/blog/posts/`
+- **URL:** `/posts/`
 - **Methods:**
   - `GET`: List all active posts
   - `POST`: Create a new post (requires authentication)
@@ -117,11 +129,11 @@ It allows users to register, login, create posts, and manage their own content.
   ```json
   {
     "title": "string",
-    "content": "string",
-    "author_ip": "string",
-    "likes": 0
+    "content": "string"
   }
   ```
+
+- **GET Response:** Paginated (`count`, `next`, `previous`, `results`)
 
   #### Swagger documentation
 
@@ -131,7 +143,7 @@ It allows users to register, login, create posts, and manage their own content.
 
 #### Retrieve/Update/Delete Post
 
-- **URL:** `/blog/posts/<int:pk>/`
+- **URL:** `/posts/<int:pk>/`
 - **Methods:**
   - `PATCH`: Update a post (only by owner)
   - `DELETE`: Soft delete a post (only by owner)
@@ -148,10 +160,9 @@ It allows users to register, login, create posts, and manage their own content.
 ## Authentication Flow
 
 1. User registers via `/users/register/`
-2. User logs in via `/users/login/` which return cookies:
-   - `access_token`: Short-lived token for API access
-   - `refresh_token`: Long-lived token for getting new access tokens
-3. To use the token: add Bearer + <acess_token>
+2. User logs in via `/users/login/` and receives `access` and `refresh`
+3. When access expires, call `/users/refresh/` with `refresh` to get a new `access`
+4. To use the token: add `Authorization: Bearer <access_token>`
 
 ---
 
@@ -166,7 +177,7 @@ It allows users to register, login, create posts, and manage their own content.
 
 ## Security Features
 
-- JWT authentication with HTTP-only cookies
+- JWT authentication with Bearer token (SimpleJWT)
 - CSRF protection
 - Secure and SameSite cookie attributes
 - Password hashing
@@ -183,8 +194,8 @@ You can test the API using SwaggerUI:
 ### Example `cURL` command for creating a post:
 
 ```bash
-curl -X POST http://localhost:8000/blog/posts/ \
+curl -X POST http://localhost:8000/posts/ \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <your_access_token_here>" \
-  -d '{"title":"My Post", "content":"This is my first post", "author_ip": "MyIP", likes: 0}'
+  -d '{"title":"My Post", "content":"This is my first post"}'
 ```
